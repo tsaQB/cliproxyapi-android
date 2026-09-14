@@ -6,7 +6,7 @@
 
 High-Performance ARM64 Android boot service & root module for [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI).
 
-**Author:** As-tsaqib
+**Author:** tsaQB
 
 ---
 
