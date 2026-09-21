@@ -1,6 +1,6 @@
 {
-  "version": "v7.3.10",
-  "versionCode": 700301000,
-  "zipUrl": "https://github.com/tsaQB/cliproxyapi-module/releases/download/v7.3.10/cliproxyapi-magisk.zip",
-  "changelog": "https://github.com/tsaQB/cliproxyapi-module/releases/download/v7.3.10/release-notes.md"
+  "version": "v7.3.11",
+  "versionCode": 700301100,
+  "zipUrl": "https://github.com/tsaQB/cliproxyapi-module/releases/download/v7.3.11/cliproxyapi-magisk.zip",
+  "changelog": "https://github.com/tsaQB/cliproxyapi-module/releases/download/v7.3.11/release-notes.md"
 }
