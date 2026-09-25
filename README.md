@@ -1,10 +1,11 @@
-# CLIProxyAPI
+# CLIProxyAPI for Android
 
 [![Release](https://img.shields.io/github/v/release/tsaQB/cliproxyapi-module?style=flat-square&color=38bdf8)](https://github.com/tsaQB/cliproxyapi-module/releases/latest)
 [![License](https://img.shields.io/github/license/tsaQB/cliproxyapi-module?style=flat-square&color=f59e0b)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Android%207.0%2B%20(ARM64)-emerald?style=flat-square)](#requirements)
 
-High-Performance ARM64 Android service & native proxy for [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI), supporting both **Root (Magisk/KernelSU/APatch)** and **Non-Root (Termux Native)**.
+High-Performance ARM64 Android service & native proxy for [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI).  
+Supports both **Non-Root (Termux Native)** and **Root (Magisk / KernelSU / APatch)**.
 
 **Author:** tsaQB
 
@@ -12,74 +13,103 @@ High-Performance ARM64 Android service & native proxy for [CLIProxyAPI](https://
 
 ![CLIProxyAPI Banner](banner.png)
 
-## ✨ Features
+## ✨ Why This Distribution?
 
-- **Native Android NDK Build:** Compiled for Android 7.0+ (API 24+) ARM64 with Bionic libc (fixes DNS resolution issues in Go on Android without requiring `proot`).
-- **Dual Mode Support:**
-  - **Root Mode:** Automatic boot service with crash watchdog via Magisk / KernelSU / APatch.
-  - **Non-Root Mode:** Runs natively in Termux with background daemon control (`setsid`).
-- **WebUI Management:** Bundled Management Dashboard (`management.html`).
-- **Termux CLI Wrapper:** Easy management with `cliproxyapi` command (`start`, `stop`, `status`, `logs`).
-- **Automated Upstream Sync:** GitHub Actions automatically checks and builds official releases every 12 hours.
+Official upstream CLIProxyAPI builds for generic Linux (`GOOS=linux`) fail on Android because pure Go resolvers look for `/etc/resolv.conf`, which does not exist on Android. This causes network and OAuth calls to fail with:
+```text
+lookup oauth2.googleapis.com on [::1]:53: read: connection refused
+```
+
+**This distribution solves the issue natively:**
+- **Compiled with Android NDK (r27c, API 24+) & Bionic libc:** Uses native Android system DNS (`getaddrinfo` via `netd`).
+- **Zero PRoot Needed:** Runs directly on bare-metal Android kernel without the RAM, battery, or performance overhead of `proot` / `termux-chroot`.
+- **Dual Mode:** Choose between a lightweight standalone Termux setup or a fully automated Magisk boot daemon.
+- **Embedded WebUI Dashboard:** Pre-packaged with the official Management Center WebUI (`management.html`).
 
 ---
 
 ## ⚡ Quick Start
 
-### 📱 Option 1: Termux (Non-Root Native)
-Install directly in Termux with one command:
+### 📱 Option 1: Termux (Non-Root Native) — Recommended
+
+Install in Termux with the **One-Line Installer**:
+
 ```sh
-curl -sL https://raw.githubusercontent.com/tsaQB/cliproxyapi-module/main/install-termux.sh | bash
+curl -sL https://raw.githubusercontent.com/tsaQB/cliproxyapi-module/main/install.sh | bash
 ```
 
-Quick commands:
+*(Or via alternative link: `curl -sL https://raw.githubusercontent.com/tsaQB/cliproxyapi-module/main/install-termux.sh | bash`)*
+
+#### Quick Management Commands:
 ```sh
-cliproxyapi start    # Start service in background
-cliproxyapi status   # Check status and PID
-cliproxyapi logs     # Follow live logs
-cliproxyapi stop     # Stop service
+cliproxyapi start      # Start service in background
+cliproxyapi status     # Check process status and port
+cliproxyapi logs       # View live service logs
+cliproxyapi restart    # Restart service
+cliproxyapi stop       # Stop background service
+cliproxyapi run        # Run foreground in terminal
 ```
-Open Dashboard at `http://127.0.0.1:8317/management.html` (Password: `admin123`).
+
+#### Access WebUI Dashboard:
+* **URL:** `http://127.0.0.1:8317/management.html`
+* **Default Password:** `admin123`
+
+---
 
 ### ⚡ Option 2: Magisk / KernelSU / APatch (Root Boot Service)
-1. Download **`cliproxyapi-magisk.zip`** from the [Latest Release](https://github.com/tsaQB/cliproxyapi-module/releases/latest).
-2. Install the ZIP inside **KernelSU Next**, **APatch**, or **Magisk Manager**.
+
+1. Download **`cliproxyapi-magisk.zip`** from [Latest Release](https://github.com/tsaQB/cliproxyapi-module/releases/latest).
+2. Flash the ZIP in **Magisk**, **KernelSU Next**, or **APatch**.
 3. Reboot device.
-4. Open WebUI at `http://127.0.0.1:8317/management.html` (Initial password: `admin123`).
+4. Access WebUI at `http://127.0.0.1:8317/management.html` (Default Password: `admin123`).
 
 ---
 
-## 🔑 Security & Password Rotation
+## 🔑 Authentication & OAuth Setup
 
-To change the default dashboard password (`admin123`) from Termux:
-
-```sh
-cliproxyapi dashboard-password
-```
-
----
-
-## 💻 Termux CLI Commands
+Authenticate providers via WebUI or CLI directly from Termux:
 
 ```sh
-# View help & available flags
-cliproxyapi -h
-
-# Authenticate providers
+# Antigravity (Google / Gemini)
 cliproxyapi -antigravity-login -no-browser
+
+# Claude
 cliproxyapi -claude-login -no-browser
+
+# OpenAI / Codex
 cliproxyapi -codex-device-login
+
+# Kimi
+cliproxyapi -kimi-login -no-browser
+
+# xAI (Grok)
+cliproxyapi -xai-login -no-browser
 ```
 
 ---
 
-## 📁 System Paths & Control
+## 📁 System Paths & Reference
 
+### Termux (Non-Root) Mode
 | Component | Path / Command |
 | :--- | :--- |
+| **Data Directory** | `~/.cliproxyapi/` |
+| **Config File** | `~/.cliproxyapi/config.yaml` |
+| **Binary Executable** | `~/.cliproxyapi/bin/cli-proxy-api` |
+| **Dashboard File** | `~/.cliproxyapi/static/management.html` |
+| **Provider Credentials** | `~/.cliproxyapi/auths/` |
+| **Service Logs** | `~/.cliproxyapi/logs/service.log` |
+| **CLI Command** | `$PREFIX/bin/cliproxyapi` |
+
+### Magisk (Root) Mode
+| Component | Path / Command |
+| :--- | :--- |
+| **Data Directory** | `/data/adb/cliproxyapi/` |
 | **Config File** | `/data/adb/cliproxyapi/config.yaml` |
-| **Provider Auths** | `/data/adb/cliproxyapi/auths/` |
+| **Provider Credentials** | `/data/adb/cliproxyapi/auths/` |
 | **App Logs** | `/data/adb/cliproxyapi/cliproxyapi.log` |
+| **Watchdog Logs** | `/data/adb/cliproxyapi/watchdog.log` |
+| **Change Password** | `cliproxyapi dashboard-password` |
 | **Disable Service** | `touch /data/adb/cliproxyapi/disable` |
 | **Restart Service** | `sh /data/adb/modules/cliproxyapi/service.sh` |
 
