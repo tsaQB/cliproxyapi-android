@@ -16,12 +16,16 @@ CHECKSUMS="$ASSET_DIR/checksums.txt"
 PROVENANCE="$ASSET_DIR/provenance.json"
 UPDATE_METADATA="$ASSET_DIR/update.json"
 RELEASE_NOTES="$ASSET_DIR/release-notes.md"
+TARBALL="$ASSET_DIR/cliproxyapi-android-arm64.tar.gz"
 
 [ -f "$ZIP" ] || { echo "missing release ZIP: $ZIP" >&2; exit 1; }
 [ -f "$CHECKSUMS" ] || { echo "missing checksums: $CHECKSUMS" >&2; exit 1; }
 [ -f "$PROVENANCE" ] || { echo "missing provenance: $PROVENANCE" >&2; exit 1; }
 [ -f "$UPDATE_METADATA" ] || { echo "missing update metadata: $UPDATE_METADATA" >&2; exit 1; }
 [ -s "$RELEASE_NOTES" ] || { echo "missing or empty release notes: $RELEASE_NOTES" >&2; exit 1; }
+if [ -f "$TARBALL" ]; then
+  tar -tzf "$TARBALL" >/dev/null
+fi
 
 (
   cd "$ASSET_DIR"

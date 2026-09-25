@@ -1,10 +1,10 @@
 # CLIProxyAPI
 
-[![Release](https://img.shields.io/github/v/release/As-tsaqib/CLIProxyAPI-Magisk?style=flat-square&color=38bdf8)](https://github.com/As-tsaqib/CLIProxyAPI-Magisk/releases/latest)
-[![License](https://img.shields.io/github/license/As-tsaqib/CLIProxyAPI-Magisk?style=flat-square&color=f59e0b)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/tsaQB/cliproxyapi-module?style=flat-square&color=38bdf8)](https://github.com/tsaQB/cliproxyapi-module/releases/latest)
+[![License](https://img.shields.io/github/license/tsaQB/cliproxyapi-module?style=flat-square&color=f59e0b)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Android%207.0%2B%20(ARM64)-emerald?style=flat-square)](#requirements)
 
-High-Performance ARM64 Android boot service & root module for [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI).
+High-Performance ARM64 Android service & native proxy for [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI), supporting both **Root (Magisk/KernelSU/APatch)** and **Non-Root (Termux Native)**.
 
 **Author:** tsaQB
 
@@ -14,24 +14,38 @@ High-Performance ARM64 Android boot service & root module for [CLIProxyAPI](http
 
 ## ✨ Features
 
-- **Native ARM64 Daemon:** Compiled specifically for Android 7.0+ (API 24+) ARM64 devices.
-- **Boot Autostart & Watchdog:** Automatic background startup with guarded crash-recovery.
-- **WebUI Management:** Embedded Management Dashboard
-- **Termux Integration:** Auto-installed `cliproxyapi` CLI wrapper for direct Termux control.
+- **Native Android NDK Build:** Compiled for Android 7.0+ (API 24+) ARM64 with Bionic libc (fixes DNS resolution issues in Go on Android without requiring `proot`).
+- **Dual Mode Support:**
+  - **Root Mode:** Automatic boot service with crash watchdog via Magisk / KernelSU / APatch.
+  - **Non-Root Mode:** Runs natively in Termux with background daemon control (`setsid`).
+- **WebUI Management:** Bundled Management Dashboard (`management.html`).
+- **Termux CLI Wrapper:** Easy management with `cliproxyapi` command (`start`, `stop`, `status`, `logs`).
 - **Automated Upstream Sync:** GitHub Actions automatically checks and builds official releases every 12 hours.
 
 ---
 
 ## ⚡ Quick Start
 
-1. Download **`cliproxyapi-magisk.zip`** from the [Latest Release](https://github.com/As-tsaqib/CLIProxyAPI-Magisk/releases/latest).
+### 📱 Option 1: Termux (Non-Root Native)
+Install directly in Termux with one command:
+```sh
+curl -sL https://raw.githubusercontent.com/tsaQB/cliproxyapi-module/main/install-termux.sh | bash
+```
+
+Quick commands:
+```sh
+cliproxyapi start    # Start service in background
+cliproxyapi status   # Check status and PID
+cliproxyapi logs     # Follow live logs
+cliproxyapi stop     # Stop service
+```
+Open Dashboard at `http://127.0.0.1:8317/management.html` (Password: `admin123`).
+
+### ⚡ Option 2: Magisk / KernelSU / APatch (Root Boot Service)
+1. Download **`cliproxyapi-magisk.zip`** from the [Latest Release](https://github.com/tsaQB/cliproxyapi-module/releases/latest).
 2. Install the ZIP inside **KernelSU Next**, **APatch**, or **Magisk Manager**.
 3. Reboot device.
-4. Open WebUI at
-```text
-http://127.0.0.1:8317/management.html
-```
-(Initial password: `admin123`).
+4. Open WebUI at `http://127.0.0.1:8317/management.html` (Initial password: `admin123`).
 
 ---
 

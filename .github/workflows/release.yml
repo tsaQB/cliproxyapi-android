@@ -312,6 +312,19 @@ jobs:
           VERSION_CODE: ${{ steps.metadata.outputs.version_code }}
         run: ./packaging/magisk/build-module.sh
 
+      - name: Build Android non-root tarball
+        if: steps.release.outputs.skip != 'true'
+        working-directory: cliproxyapi-magisk
+        run: |
+          set -euo pipefail
+          stage="dist/android-arm64"
+          mkdir -p "$stage"
+          cp packaging/magisk/bin/cli-proxy-api "$stage/cli-proxy-api"
+          cp packaging/magisk/static/management.html "$stage/management.html"
+          cp README.md LICENSE THIRD_PARTY_NOTICES.md "$stage/"
+          tar -C "$stage" -czf dist/magisk/cliproxyapi-android-arm64.tar.gz cli-proxy-api management.html README.md LICENSE THIRD_PARTY_NOTICES.md
+          rm -rf "$stage"
+
       - name: Generate checksums and provenance
         if: steps.release.outputs.skip != 'true'
         working-directory: cliproxyapi-magisk
@@ -329,7 +342,7 @@ jobs:
         run: |
           set -euo pipefail
           cd dist/magisk
-          sha256sum cliproxyapi-magisk.zip > checksums.txt
+          sha256sum cliproxyapi-magisk.zip cliproxyapi-android-arm64.tar.gz > checksums.txt
           cp ../../packaging/magisk/update.json update.json
 
           jq -n \
@@ -433,10 +446,11 @@ jobs:
           set -euo pipefail
           gh release create "$TAG" \
             release-bundle/cliproxyapi-magisk.zip \
+            release-bundle/cliproxyapi-android-arm64.tar.gz \
             release-bundle/checksums.txt \
             release-bundle/provenance.json \
             release-bundle/release-notes.md \
             --repo "$GITHUB_REPOSITORY" \
             --target "$(git rev-parse HEAD)" \
-            --title "CLIProxyAPI Magisk $TAG" \
+            --title "CLIProxyAPI $TAG" \
             --notes-file release-bundle/release-notes.md

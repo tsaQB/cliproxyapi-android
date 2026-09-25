@@ -64,7 +64,8 @@ jobs:
           VERSION=v0.0.0 VERSION_CODE=0 ./packaging/magisk/build-module.sh
           (
             cd dist/magisk
-            sha256sum cliproxyapi-magisk.zip > checksums.txt
+            tar -czf cliproxyapi-android-arm64.tar.gz -C ../../packaging/magisk/bin cli-proxy-api
+            sha256sum cliproxyapi-magisk.zip cliproxyapi-android-arm64.tar.gz > checksums.txt
             cp ../../packaging/magisk/update.json update.json
             printf '%s\n' '{"releaseTag":"v0.0.0","source":{},"models":{},"dashboard":{},"toolchain":{}}' > provenance.json
             printf '%s\n' '# CI fixture' '' '## Upstream changes (v0.0.0)' '' '- Fixture change.' > release-notes.md
