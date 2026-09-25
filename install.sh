@@ -31,25 +31,25 @@ clear 2>/dev/null || true
 
 printf "%b" "${C_CYAN}"
 cat << 'EOF'
-  ____ _     ___ ____                      _    ____ ___ 
- / ___| |   |_ _|  _ \ _ __ _____  ___   _/ \  |  _ \_ _|
+____ _     ___ ____                      _    ____ ___ 
+/ ___| |   |_ _|  _ \ _ __ _____  ___   _/ \  |  _ \_ _|
 | |   | |    | || |_) | '__/ _ \ \/ / | | / _ \ | |_) | | 
 | |___| |___ | ||  __/| | | (_) >  <| |_| / ___ \|  __/| | 
- \____|_____|___|_|   |_|  \___/_/\_\\__, /_/   \_\_|  |___|
-                                     |___/                  
+\____|_____|___|_|   |_|  \___/_/\_\\__, /_/   \_\_|  |___|
+                                    |___/                  
 EOF
 printf "%b" "${C_RESET}"
-printf "%b        Android & Termux Native Distribution%b\n" "${C_DIM}" "${C_RESET}"
-printf "%b                 Maintained by tsaQB%b\n\n" "${C_PURPLE}" "${C_RESET}"
+printf "%b     Android & Termux Native Distribution%b\n" "${C_DIM}" "${C_RESET}"
+printf "%b              Maintained by tsaQB%b\n\n" "${C_PURPLE}" "${C_RESET}"
 
 # 1. Architecture Check
 printf "%b[1/6]%b %b🔍 Checking CPU architecture...%b\n" "${C_CYAN}" "${C_RESET}" "${C_BOLD}" "${C_RESET}"
 ARCH=$(uname -m)
 if [ "$ARCH" != "aarch64" ] && [ "$ARCH" != "arm64" ]; then
-    printf "      %b❌ Error: Unsupported architecture '%s'. Only ARM64 (aarch64) is supported.%b\n\n" "${C_RED}" "$ARCH" "${C_RESET}" >&2
+    printf "      %b❌ Unsupported architecture: %s (ARM64 required)%b\n\n" "${C_RED}" "$ARCH" "${C_RESET}" >&2
     exit 1
 fi
-printf "      %b✔ Compatible CPU detected: %s (ARM64)%b\n\n" "${C_GREEN}" "$ARCH" "${C_RESET}"
+printf "      %b✔ Compatible CPU: %s (ARM64)%b\n\n" "${C_GREEN}" "$ARCH" "${C_RESET}"
 
 # 2. Dependency Check
 printf "%b[2/6]%b %b📦 Verifying system packages...%b\n" "${C_CYAN}" "${C_RESET}" "${C_BOLD}" "${C_RESET}"
@@ -64,26 +64,26 @@ if [ -n "$need_pkg" ]; then
     # shellcheck disable=SC2086
     pkg install -y $need_pkg
 fi
-printf "      %b✔ All required tools are available (curl, tar, jq)%b\n\n" "${C_GREEN}" "${C_RESET}"
+printf "      %b✔ Required tools ready (curl, tar, jq)%b\n\n" "${C_GREEN}" "${C_RESET}"
 
 # 3. Directory Setup
 printf "%b[3/6]%b %b📁 Preparing workspace directories...%b\n" "${C_CYAN}" "${C_RESET}" "${C_BOLD}" "${C_RESET}"
 mkdir -p "${BIN_DIR}" "${AUTH_DIR}" "${LOG_DIR}" "${STATIC_DIR}"
 
 if pgrep -f "${BIN_PATH}" >/dev/null 2>&1; then
-    printf "      %b🛑 Stopping active CLIProxyAPI daemon before upgrade...%b\n" "${C_YELLOW}" "${C_RESET}"
+    printf "      %b🛑 Stopping active daemon before upgrade...%b\n" "${C_YELLOW}" "${C_RESET}"
     pkill -f "${BIN_PATH}" || true
     sleep 1
 fi
-printf "      %b✔ Base directory ready at: %s%b\n\n" "${C_GREEN}" "${BASE_DIR}" "${C_RESET}"
+printf "      %b✔ Workspace ready at ~/.cliproxyapi%b\n\n" "${C_GREEN}" "${C_RESET}"
 
 # 4. Fetch Latest Release
-printf "%b[4/6]%b %b🌐 Fetching latest release from GitHub...%b\n" "${C_CYAN}" "${C_RESET}" "${C_BOLD}" "${C_RESET}"
+printf "%b[4/6]%b %b🌐 Fetching release from GitHub...%b\n" "${C_CYAN}" "${C_RESET}" "${C_BOLD}" "${C_RESET}"
 LATEST_TAG=$(curl -sL https://api.github.com/repos/tsaQB/cliproxyapi-android/releases/latest | jq -r '.tag_name // empty' 2>/dev/null || true)
 if [ -z "$LATEST_TAG" ]; then
     LATEST_TAG="v7.3.17"
 fi
-printf "      %b✔ Release version: %b%s%b\n" "${C_GREEN}" "${C_WHITE}" "$LATEST_TAG" "${C_RESET}"
+printf "      %b• Release version: %b%s%b\n" "${C_DIM}" "${C_WHITE}" "$LATEST_TAG" "${C_RESET}"
 
 TAR_URL="https://github.com/tsaQB/cliproxyapi-android/releases/latest/download/cliproxyapi-android-arm64.tar.gz"
 TMP_TAR="${PREFIX_DIR}/tmp/cpa-android-arm64.tar.gz"
@@ -91,11 +91,11 @@ TMP_EXTRACT="${PREFIX_DIR}/tmp/cpa_extracted_termux"
 mkdir -p "$(dirname "$TMP_TAR")" "$TMP_EXTRACT"
 
 printf "      %b⬇ Downloading Android Bionic bundle...%b\n" "${C_DIM}" "${C_RESET}"
-if ! curl -L --progress-bar "$TAR_URL" -o "$TMP_TAR"; then
-    printf "      %b⚠️  Primary tarball download failed, falling back to zip archive...%b\n" "${C_YELLOW}" "${C_RESET}"
+if ! curl -f -sSL "$TAR_URL" -o "$TMP_TAR"; then
+    printf "      %b⚠️  Tarball download failed, trying zip fallback...%b\n" "${C_YELLOW}" "${C_RESET}"
     ZIP_FALLBACK="https://github.com/tsaQB/cliproxyapi-android/releases/latest/download/cliproxyapi-magisk.zip"
     TMP_ZIP="${PREFIX_DIR}/tmp/cpa-magisk-fallback.zip"
-    curl -L --progress-bar "$ZIP_FALLBACK" -o "$TMP_ZIP"
+    curl -f -sSL "$ZIP_FALLBACK" -o "$TMP_ZIP"
     unzip -o -q "$TMP_ZIP" bin/cli-proxy-api static/management.html -d "$TMP_EXTRACT"
     mv -f "$TMP_EXTRACT/bin/cli-proxy-api" "${BIN_PATH}"
     mv -f "$TMP_EXTRACT/static/management.html" "${DASHBOARD_FILE}"
@@ -109,12 +109,12 @@ fi
 
 chmod 755 "${BIN_PATH}"
 chmod 644 "${DASHBOARD_FILE}"
-printf "      %b✔ Native Android NDK binary & WebUI dashboard deployed%b\n\n" "${C_GREEN}" "${C_RESET}"
+printf "      %b✔ Android NDK binary & WebUI deployed%b\n\n" "${C_GREEN}" "${C_RESET}"
 
 # 5. Configuration Setup
-printf "%b[5/6]%b %b⚙️ Configuring service profile...%b\n" "${C_CYAN}" "${C_RESET}" "${C_BOLD}" "${C_RESET}"
+printf "%b[5/6]%b %b⚙️  Configuring service profile...%b\n" "${C_CYAN}" "${C_RESET}" "${C_BOLD}" "${C_RESET}"
 if [ -f "${CONFIG_FILE}" ]; then
-    printf "      %bℹ️  Existing config detected. Backed up to config.yaml.bak%b\n" "${C_YELLOW}" "${C_RESET}"
+    printf "      %b• Existing config backed up to config.yaml.bak%b\n" "${C_DIM}" "${C_RESET}"
     cp "${CONFIG_FILE}" "${CONFIG_FILE}.bak"
 fi
 
@@ -144,7 +144,7 @@ routing:
   strategy: "round-robin"
 EOF
 chmod 600 "${CONFIG_FILE}"
-printf "      %b✔ Secure configuration created with secret: %badmin123%b\n\n" "${C_GREEN}" "${C_WHITE}" "${C_RESET}"
+printf "      %b✔ Config created (Secret: %badmin123%b)%b\n\n" "${C_GREEN}" "${C_YELLOW}" "${C_GREEN}" "${C_RESET}"
 
 # 6. Wrapper Installation
 printf "%b[6/6]%b %b🔗 Installing CLI command launcher...%b\n" "${C_CYAN}" "${C_RESET}" "${C_BOLD}" "${C_RESET}"
@@ -230,21 +230,21 @@ case "$1" in
 esac
 EOF
 chmod 755 "${WRAPPER_PATH}"
-printf "      %b✔ Command 'cliproxyapi' registered in %s%b\n\n" "${C_GREEN}" "${WRAPPER_PATH}" "${C_RESET}"
+printf "      %b✔ Command 'cliproxyapi' registered in PATH%b\n\n" "${C_GREEN}" "${C_RESET}"
 
-# Final Banner
-printf "%b╭─────────────────────────────────────────────────────────────╮%b\n" "${C_GREEN}" "${C_RESET}"
-printf "%b│%b               %b🎉 Installation Complete!%b                  %b│%b\n" "${C_GREEN}" "${C_RESET}" "${C_BOLD}" "${C_RESET}" "${C_GREEN}" "${C_RESET}"
-printf "%b├─────────────────────────────────────────────────────────────┤%b\n" "${C_GREEN}" "${C_RESET}"
-printf "%b│%b  • %bWebUI Dashboard%b : %bhttp://127.0.0.1:8317/management.html%b   %b│%b\n" "${C_GREEN}" "${C_RESET}" "${C_BOLD}" "${C_RESET}" "${C_CYAN}" "${C_RESET}" "${C_GREEN}" "${C_RESET}"
-printf "%b│%b  • %bDefault Secret%b  : %badmin123%b                               %b│%b\n" "${C_GREEN}" "${C_RESET}" "${C_BOLD}" "${C_RESET}" "${C_YELLOW}" "${C_RESET}" "${C_GREEN}" "${C_RESET}"
-printf "%b│%b  • %bClient API Key%b  : %b%s%b  %b│%b\n" "${C_GREEN}" "${C_RESET}" "${C_BOLD}" "${C_RESET}" "${C_WHITE}" "${RANDOM_KEY}" "${C_RESET}" "${C_GREEN}" "${C_RESET}"
-printf "%b│%b  • %bConfig Path%b     : %b~/.cliproxyapi/config.yaml%b             %b│%b\n" "${C_GREEN}" "${C_RESET}" "${C_BOLD}" "${C_RESET}" "${C_DIM}" "${C_RESET}" "${C_GREEN}" "${C_RESET}"
-printf "%b│%b  • %bData Folder%b     : %b~/.cliproxyapi/%b                       %b│%b\n" "${C_GREEN}" "${C_RESET}" "${C_BOLD}" "${C_RESET}" "${C_DIM}" "${C_RESET}" "${C_GREEN}" "${C_RESET}"
-printf "%b├─────────────────────────────────────────────────────────────┤%b\n" "${C_GREEN}" "${C_RESET}"
-printf "%b│%b  %bQuick Start Commands:%b                                      %b│%b\n" "${C_GREEN}" "${C_RESET}" "${C_BOLD}" "${C_RESET}" "${C_GREEN}" "${C_RESET}"
-printf "%b│%b    $ %bcliproxyapi start%b      Start service in background      %b│%b\n" "${C_GREEN}" "${C_RESET}" "${C_CYAN}" "${C_RESET}" "${C_GREEN}" "${C_RESET}"
-printf "%b│%b    $ %bcliproxyapi status%b     Check server status & port       %b│%b\n" "${C_GREEN}" "${C_RESET}" "${C_CYAN}" "${C_RESET}" "${C_GREEN}" "${C_RESET}"
-printf "%b│%b    $ %bcliproxyapi logs%b       Stream live service logs         %b│%b\n" "${C_GREEN}" "${C_RESET}" "${C_CYAN}" "${C_RESET}" "${C_GREEN}" "${C_RESET}"
-printf "%b│%b    $ %bcliproxyapi stop%b       Stop background daemon           %b│%b\n" "${C_GREEN}" "${C_RESET}" "${C_CYAN}" "${C_RESET}" "${C_GREEN}" "${C_RESET}"
-printf "%b╰─────────────────────────────────────────────────────────────╯%b\n\n" "${C_GREEN}" "${C_RESET}"
+# Final Summary Card
+printf "%b────────────────────────────────────────────────────%b\n" "${C_GREEN}" "${C_RESET}"
+printf "  %b🎉 Installation Complete!%b\n" "${C_BOLD}" "${C_RESET}"
+printf "%b────────────────────────────────────────────────────%b\n\n" "${C_GREEN}" "${C_RESET}"
+
+printf "  %b• WebUI Dashboard%b : %bhttp://127.0.0.1:8317/management.html%b\n" "${C_BOLD}" "${C_RESET}" "${C_CYAN}" "${C_RESET}"
+printf "  %b• Default Secret%b  : %badmin123%b\n" "${C_BOLD}" "${C_RESET}" "${C_YELLOW}" "${C_RESET}"
+printf "  %b• Client API Key%b  : %b%s%b\n" "${C_BOLD}" "${C_RESET}" "${C_WHITE}" "${RANDOM_KEY}" "${C_RESET}"
+printf "  %b• Configuration%b   : %b~/.cliproxyapi/config.yaml%b\n\n" "${C_BOLD}" "${C_RESET}" "${C_DIM}" "${C_RESET}"
+
+printf "  %bQuick Start Commands:%b\n" "${C_BOLD}" "${C_RESET}"
+printf "    %b$ cliproxyapi start%b   Start service in background\n" "${C_CYAN}" "${C_RESET}"
+printf "    %b$ cliproxyapi status%b  Check server status\n" "${C_CYAN}" "${C_RESET}"
+printf "    %b$ cliproxyapi logs%b    Stream live logs\n" "${C_CYAN}" "${C_RESET}"
+printf "    %b$ cliproxyapi stop%b    Stop background daemon\n\n" "${C_CYAN}" "${C_RESET}"
+printf "%b────────────────────────────────────────────────────%b\n\n" "${C_GREEN}" "${C_RESET}"
