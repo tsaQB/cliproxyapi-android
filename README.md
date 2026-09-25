@@ -45,6 +45,7 @@ curl -sL https://raw.githubusercontent.com/tsaQB/cliproxyapi-android/main/instal
 cliproxyapi start      # Start service in background
 cliproxyapi status     # Check process status and port
 cliproxyapi logs       # View live service logs
+cliproxyapi update     # Upgrade binary & WebUI to latest release
 cliproxyapi restart    # Restart service
 cliproxyapi stop       # Stop background service
 cliproxyapi run        # Run foreground in terminal

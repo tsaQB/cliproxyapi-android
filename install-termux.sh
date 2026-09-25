@@ -114,13 +114,13 @@ printf "      %b✔ Android NDK binary & WebUI deployed%b\n\n" "${C_GREEN}" "${C
 # 5. Configuration Setup
 printf "%b[5/6]%b %b⚙️  Configuring service profile...%b\n" "${C_CYAN}" "${C_RESET}" "${C_BOLD}" "${C_RESET}"
 if [ -f "${CONFIG_FILE}" ]; then
-    printf "      %b• Existing config backed up to config.yaml.bak%b\n" "${C_DIM}" "${C_RESET}"
-    cp "${CONFIG_FILE}" "${CONFIG_FILE}.bak"
-fi
-
-RANDOM_KEY=$(head -c 16 /dev/urandom | od -An -tx1 | tr -d ' \n')
-
-cat << EOF > "${CONFIG_FILE}"
+    printf "      %b✔ Existing configuration preserved: ~/.cliproxyapi/config.yaml%b\n\n" "${C_GREEN}" "${C_RESET}"
+    RANDOM_KEY=$(grep -E '^[[:space:]]*-[[:space:]]*"?[a-zA-Z0-9]+' "${CONFIG_FILE}" 2>/dev/null | head -n 1 | tr -d ' "-' || echo "configured")
+    ADMIN_KEY=$(grep -E '^[[:space:]]*secret-key:[[:space:]]*' "${CONFIG_FILE}" 2>/dev/null | head -n 1 | awk '{print $2}' | tr -d '"' || echo "admin123")
+else
+    RANDOM_KEY=$(head -c 16 /dev/urandom | od -An -tx1 | tr -d ' \n')
+    ADMIN_KEY="admin123"
+    cat << EOF > "${CONFIG_FILE}"
 # CLIProxyAPI Configuration for Android / Termux
 host: "0.0.0.0"
 port: 8317
@@ -130,7 +130,7 @@ api-keys:
 
 remote-management:
   allow-remote: true
-  secret-key: "admin123"
+  secret-key: "${ADMIN_KEY}"
   disable-control-panel: false
   panel-github-repository: "https://github.com/router-for-me/Cli-Proxy-API-Management-Center"
 
@@ -143,8 +143,9 @@ usage-statistics-enabled: true
 routing:
   strategy: "round-robin"
 EOF
-chmod 600 "${CONFIG_FILE}"
-printf "      %b✔ Config created (Secret: %badmin123%b)%b\n\n" "${C_GREEN}" "${C_YELLOW}" "${C_GREEN}" "${C_RESET}"
+    chmod 600 "${CONFIG_FILE}"
+    printf "      %b✔ Config created (Secret: %b%s%b)%b\n\n" "${C_GREEN}" "${C_YELLOW}" "${ADMIN_KEY}" "${C_GREEN}" "${C_RESET}"
+fi
 
 # 6. Wrapper Installation
 printf "%b[6/6]%b %b🔗 Installing CLI command launcher...%b\n" "${C_CYAN}" "${C_RESET}" "${C_BOLD}" "${C_RESET}"
@@ -209,6 +210,50 @@ case "$1" in
   logs|log)
     tail -n 50 -f "$LOG_FILE"
     ;;
+  update|upgrade)
+    echo "🌐 Checking for latest release on GitHub..."
+    TMP_DIR="${PREFIX:-/data/data/com.termux/files/usr}/tmp"
+    TMP_TAR="${TMP_DIR}/cpa_update.tar.gz"
+    TMP_EXT="${TMP_DIR}/cpa_update_ext"
+    LATEST_TAG=$(curl -sL https://api.github.com/repos/tsaQB/cliproxyapi-android/releases/latest | grep '"tag_name":' | head -n 1 | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/' || true)
+    if [ -z "$LATEST_TAG" ]; then
+      LATEST_TAG="latest"
+    fi
+    echo "⬇ Downloading release ${LATEST_TAG}..."
+    TAR_URL="https://github.com/tsaQB/cliproxyapi-android/releases/latest/download/cliproxyapi-android-arm64.tar.gz"
+    rm -rf "$TMP_TAR" "$TMP_EXT"
+    mkdir -p "$TMP_EXT"
+    if ! curl -f -sSL "$TAR_URL" -o "$TMP_TAR"; then
+      echo "❌ Download failed. Check your network or GitHub rate limits."
+      rm -rf "$TMP_TAR" "$TMP_EXT"
+      exit 1
+    fi
+
+    WAS_RUNNING=0
+    if pgrep -f "$BIN" >/dev/null 2>&1; then
+      WAS_RUNNING=1
+      echo "🛑 Temporarily stopping active daemon for upgrade..."
+      pkill -f "$BIN" || true
+      sleep 1
+    fi
+
+    tar -xzf "$TMP_TAR" -C "$TMP_EXT"
+    mv -f "$TMP_EXT/cli-proxy-api" "${BIN}"
+    mv -f "$TMP_EXT/management.html" "${BASE_DIR}/static/management.html"
+    chmod 755 "${BIN}"
+    chmod 644 "${BASE_DIR}/static/management.html"
+    rm -rf "$TMP_TAR" "$TMP_EXT"
+
+    echo "✅ CLIProxyAPI updated successfully to ${LATEST_TAG}!"
+    if [ "$WAS_RUNNING" -eq 1 ]; then
+      echo "🔄 Restarting CLIProxyAPI daemon..."
+      setsid "$BIN" -config "$CONFIG" < /dev/null > "$LOG_FILE" 2>&1 &
+      sleep 1
+      if pgrep -f "$BIN" >/dev/null 2>&1; then
+        echo "🟢 Daemon running (PID: $(pgrep -f "$BIN" | head -n 1))."
+      fi
+    fi
+    ;;
   run)
     shift
     exec "$BIN" -config "$CONFIG" "$@"
@@ -221,6 +266,7 @@ case "$1" in
       echo "  cliproxyapi restart    - Restart service daemon"
       echo "  cliproxyapi status     - View daemon running status"
       echo "  cliproxyapi logs       - Follow real-time service logs"
+      echo "  cliproxyapi update     - Upgrade binary & WebUI to latest release"
       echo "  cliproxyapi run        - Run in foreground console"
       echo "  cliproxyapi <options>  - Pass flags directly (e.g. -h, -antigravity-login)"
       exit 0
@@ -238,7 +284,7 @@ printf "  %b🎉 Installation Complete!%b\n" "${C_BOLD}" "${C_RESET}"
 printf "%b────────────────────────────────────────────────────%b\n\n" "${C_GREEN}" "${C_RESET}"
 
 printf "  %b• WebUI Dashboard%b : %bhttp://127.0.0.1:8317/management.html%b\n" "${C_BOLD}" "${C_RESET}" "${C_CYAN}" "${C_RESET}"
-printf "  %b• Default Secret%b  : %badmin123%b\n" "${C_BOLD}" "${C_RESET}" "${C_YELLOW}" "${C_RESET}"
+printf "  %b• Default Secret%b  : %b%s%b\n" "${C_BOLD}" "${C_RESET}" "${C_YELLOW}" "${ADMIN_KEY}" "${C_RESET}"
 printf "  %b• Client API Key%b  : %b%s%b\n" "${C_BOLD}" "${C_RESET}" "${C_WHITE}" "${RANDOM_KEY}" "${C_RESET}"
 printf "  %b• Configuration%b   : %b~/.cliproxyapi/config.yaml%b\n\n" "${C_BOLD}" "${C_RESET}" "${C_DIM}" "${C_RESET}"
 
@@ -246,5 +292,6 @@ printf "  %bQuick Start Commands:%b\n" "${C_BOLD}" "${C_RESET}"
 printf "    %b$ cliproxyapi start%b   Start service in background\n" "${C_CYAN}" "${C_RESET}"
 printf "    %b$ cliproxyapi status%b  Check server status\n" "${C_CYAN}" "${C_RESET}"
 printf "    %b$ cliproxyapi logs%b    Stream live logs\n" "${C_CYAN}" "${C_RESET}"
+printf "    %b$ cliproxyapi update%b  Upgrade to latest release\n" "${C_CYAN}" "${C_RESET}"
 printf "    %b$ cliproxyapi stop%b    Stop background daemon\n\n" "${C_CYAN}" "${C_RESET}"
 printf "%b────────────────────────────────────────────────────%b\n\n" "${C_GREEN}" "${C_RESET}"
