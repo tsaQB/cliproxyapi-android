@@ -22,7 +22,7 @@ lookup oauth2.googleapis.com on [::1]:53: read: connection refused
 
 **This distribution solves the issue natively:**
 - **Compiled with Android NDK (r27c, API 24+) & Bionic libc:** Uses native Android system DNS (`getaddrinfo` via `netd`).
-- **Zero PRoot Needed:** Runs directly on bare-metal Android kernel without the RAM, battery, or performance overhead of `proot` / `termux-chroot`.
+- **100% Native Android:** Runs directly on bare-metal Android kernel with minimal RAM and zero emulation overhead.
 - **Dual Mode:** Choose between a lightweight standalone Termux setup or a fully automated Magisk boot daemon.
 - **Embedded WebUI Dashboard:** Pre-packaged with the official Management Center WebUI (`management.html`).
 

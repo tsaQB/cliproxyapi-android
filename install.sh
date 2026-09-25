@@ -70,7 +70,9 @@ printf "      %b✔ Required tools ready (curl, tar, jq)%b\n\n" "${C_GREEN}" "${
 printf "%b[3/6]%b %b📁 Preparing workspace directories...%b\n" "${C_CYAN}" "${C_RESET}" "${C_BOLD}" "${C_RESET}"
 mkdir -p "${BIN_DIR}" "${AUTH_DIR}" "${LOG_DIR}" "${STATIC_DIR}"
 
+WAS_RUNNING=0
 if pgrep -f "${BIN_PATH}" >/dev/null 2>&1; then
+    WAS_RUNNING=1
     printf "      %b🛑 Stopping active daemon before upgrade...%b\n" "${C_YELLOW}" "${C_RESET}"
     pkill -f "${BIN_PATH}" || true
     sleep 1
@@ -92,20 +94,15 @@ mkdir -p "$(dirname "$TMP_TAR")" "$TMP_EXTRACT"
 
 printf "      %b⬇ Downloading Android Bionic bundle...%b\n" "${C_DIM}" "${C_RESET}"
 if ! curl -f -sSL "$TAR_URL" -o "$TMP_TAR"; then
-    printf "      %b⚠️  Tarball download failed, trying zip fallback...%b\n" "${C_YELLOW}" "${C_RESET}"
-    ZIP_FALLBACK="https://github.com/tsaQB/cliproxyapi-android/releases/latest/download/cliproxyapi-magisk.zip"
-    TMP_ZIP="${PREFIX_DIR}/tmp/cpa-magisk-fallback.zip"
-    curl -f -sSL "$ZIP_FALLBACK" -o "$TMP_ZIP"
-    unzip -o -q "$TMP_ZIP" bin/cli-proxy-api static/management.html -d "$TMP_EXTRACT"
-    mv -f "$TMP_EXTRACT/bin/cli-proxy-api" "${BIN_PATH}"
-    mv -f "$TMP_EXTRACT/static/management.html" "${DASHBOARD_FILE}"
-    rm -rf "$TMP_ZIP" "$TMP_EXTRACT"
-else
-    tar -xzf "$TMP_TAR" -C "$TMP_EXTRACT"
-    mv -f "$TMP_EXTRACT/cli-proxy-api" "${BIN_PATH}"
-    mv -f "$TMP_EXTRACT/management.html" "${DASHBOARD_FILE}"
+    printf "      %b❌ Failed to download release package. Please check network connection.%b\n\n" "${C_RED}" "${C_RESET}" >&2
     rm -rf "$TMP_TAR" "$TMP_EXTRACT"
+    exit 1
 fi
+
+tar -xzf "$TMP_TAR" -C "$TMP_EXTRACT"
+mv -f "$TMP_EXTRACT/cli-proxy-api" "${BIN_PATH}"
+mv -f "$TMP_EXTRACT/management.html" "${DASHBOARD_FILE}"
+rm -rf "$TMP_TAR" "$TMP_EXTRACT"
 
 chmod 755 "${BIN_PATH}"
 chmod 644 "${DASHBOARD_FILE}"
@@ -118,7 +115,7 @@ if [ -f "${CONFIG_FILE}" ]; then
     RANDOM_KEY=$(grep -E '^[[:space:]]*-[[:space:]]*"?[a-zA-Z0-9]+' "${CONFIG_FILE}" 2>/dev/null | head -n 1 | tr -d ' "-' || echo "configured")
     ADMIN_KEY=$(grep -E '^[[:space:]]*secret-key:[[:space:]]*' "${CONFIG_FILE}" 2>/dev/null | head -n 1 | awk '{print $2}' | tr -d '"' || echo "admin123")
 else
-    RANDOM_KEY=$(head -c 16 /dev/urandom | od -An -tx1 | tr -d ' \n')
+    RANDOM_KEY=$(dd if=/dev/urandom bs=16 count=1 2>/dev/null | od -An -tx1 | tr -d ' \n')
     ADMIN_KEY="admin123"
     cat << EOF > "${CONFIG_FILE}"
 # CLIProxyAPI Configuration for Android / Termux
@@ -143,13 +140,13 @@ usage-statistics-enabled: true
 routing:
   strategy: "round-robin"
 
-# Mencegah 429 palsu dari sensor Google Antigravity
+# Prevent false 429 rate limit triggers from Google Antigravity sensor
 antigravity:
   sensitive-words:
     - Nous
     - Research
 
-# Alias model agar tool calling Hermes terbaca
+# Model alias mappings for Hermes tool calling compatibility
 oauth-model-alias:
   antigravity:
     - name: "gemini-3.8-flash-high"
@@ -165,58 +162,58 @@ fi
 
 # 6. Wrapper Installation
 printf "%b[6/6]%b %b🔗 Installing CLI command launcher...%b\n" "${C_CYAN}" "${C_RESET}" "${C_BOLD}" "${C_RESET}"
-cat << 'EOF' > "${WRAPPER_PATH}"
-#!/data/data/com.termux/files/usr/bin/bash
-BASE_DIR="${HOME}/.cliproxyapi"
-BIN="${BASE_DIR}/bin/cli-proxy-api"
-CONFIG="${BASE_DIR}/config.yaml"
-LOG_FILE="${BASE_DIR}/logs/service.log"
-export MANAGEMENT_STATIC_PATH="${BASE_DIR}/static"
+cat << EOF > "${WRAPPER_PATH}"
+#!${PREFIX_DIR}/bin/bash
+BASE_DIR="\${HOME}/.cliproxyapi"
+BIN="\${BASE_DIR}/bin/cli-proxy-api"
+CONFIG="\${BASE_DIR}/config.yaml"
+LOG_FILE="\${BASE_DIR}/logs/service.log"
+export MANAGEMENT_STATIC_PATH="\${BASE_DIR}/static"
 export GODEBUG=netdns=cgo
 
-case "$1" in
+start_daemon() {
+  if pgrep -f "\$BIN" >/dev/null 2>&1; then
+    echo "⚠️  CLIProxyAPI is already running (PID: \$(pgrep -f "\$BIN" | head -n 1))."
+    return 0
+  fi
+  echo "🚀 Starting CLIProxyAPI background daemon..."
+  setsid "\$BIN" -config "\$CONFIG" < /dev/null > "\$LOG_FILE" 2>&1 &
+  sleep 1
+  if pgrep -f "\$BIN" >/dev/null 2>&1; then
+    echo "✅ CLIProxyAPI is running!"
+    echo "🔗 Endpoint : http://127.0.0.1:8317"
+    echo "🌐 Dashboard: http://127.0.0.1:8317/management.html"
+  else
+    echo "❌ Failed to start. Check logs: \$LOG_FILE"
+    return 1
+  fi
+}
+
+stop_daemon() {
+  if pgrep -f "\$BIN" >/dev/null 2>&1; then
+    pkill -f "\$BIN"
+    echo "🛑 CLIProxyAPI daemon stopped."
+  else
+    echo "ℹ️  CLIProxyAPI is not running."
+  fi
+}
+
+case "\$1" in
   start)
-    if pgrep -f "$BIN" >/dev/null 2>&1; then
-      echo "⚠️  CLIProxyAPI is already running (PID: $(pgrep -f "$BIN" | head -n 1))."
-      exit 0
-    fi
-    echo "🚀 Starting CLIProxyAPI background daemon..."
-    setsid "$BIN" -config "$CONFIG" < /dev/null > "$LOG_FILE" 2>&1 &
-    sleep 1
-    if pgrep -f "$BIN" >/dev/null 2>&1; then
-      echo "✅ CLIProxyAPI is running!"
-      echo "🔗 Endpoint : http://127.0.0.1:8317"
-      echo "🌐 Dashboard: http://127.0.0.1:8317/management.html"
-    else
-      echo "❌ Failed to start. Check logs: $LOG_FILE"
-    fi
+    start_daemon
     ;;
   stop)
-    if pgrep -f "$BIN" >/dev/null 2>&1; then
-      pkill -f "$BIN"
-      echo "🛑 CLIProxyAPI daemon stopped."
-    else
-      echo "ℹ️  CLIProxyAPI is not running."
-    fi
+    stop_daemon
     ;;
   restart)
-    if pgrep -f "$BIN" >/dev/null 2>&1; then
-      pkill -f "$BIN"
-      sleep 1
-    fi
-    setsid "$BIN" -config "$CONFIG" < /dev/null > "$LOG_FILE" 2>&1 &
+    stop_daemon
     sleep 1
-    if pgrep -f "$BIN" >/dev/null 2>&1; then
-      echo "🔄 CLIProxyAPI restarted successfully."
-      echo "🌐 Dashboard: http://127.0.0.1:8317/management.html"
-    else
-      echo "❌ Failed to restart. Check logs: $LOG_FILE"
-    fi
+    start_daemon
     ;;
   status)
-    if pgrep -f "$BIN" >/dev/null 2>&1; then
-      PID=$(pgrep -f "$BIN" | head -n 1)
-      echo "🟢 CLIProxyAPI is running (PID: $PID)"
+    if pgrep -f "\$BIN" >/dev/null 2>&1; then
+      PID=\$(pgrep -f "\$BIN" | head -n 1)
+      echo "🟢 CLIProxyAPI is running (PID: \$PID)"
       echo "🔗 Server URL : http://127.0.0.1:8317"
       echo "🌐 Dashboard  : http://127.0.0.1:8317/management.html"
     else
@@ -224,58 +221,56 @@ case "$1" in
     fi
     ;;
   logs|log)
-    tail -n 50 -f "$LOG_FILE"
+    tail -n 50 -f "\$LOG_FILE"
     ;;
   update|upgrade)
     echo "🌐 Checking for latest release on GitHub..."
-    TMP_DIR="${PREFIX:-/data/data/com.termux/files/usr}/tmp"
-    TMP_TAR="${TMP_DIR}/cpa_update.tar.gz"
-    TMP_EXT="${TMP_DIR}/cpa_update_ext"
-    LATEST_TAG=$(curl -sL https://api.github.com/repos/tsaQB/cliproxyapi-android/releases/latest | grep '"tag_name":' | head -n 1 | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/' || true)
-    if [ -z "$LATEST_TAG" ]; then
+    TMP_DIR="${PREFIX_DIR}/tmp"
+    TMP_TAR="\${TMP_DIR}/cpa_update.tar.gz"
+    TMP_EXT="\${TMP_DIR}/cpa_update_ext"
+    LATEST_TAG=\$(curl -sL https://api.github.com/repos/tsaQB/cliproxyapi-android/releases/latest | jq -r '.tag_name // empty' 2>/dev/null || true)
+    if [ -z "\$LATEST_TAG" ]; then
+      LATEST_TAG=\$(curl -sL https://api.github.com/repos/tsaQB/cliproxyapi-android/releases/latest | grep '"tag_name":' | head -n 1 | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/' || true)
+    fi
+    if [ -z "\$LATEST_TAG" ]; then
       LATEST_TAG="latest"
     fi
-    echo "⬇ Downloading release ${LATEST_TAG}..."
+    echo "⬇ Downloading release \${LATEST_TAG}..."
     TAR_URL="https://github.com/tsaQB/cliproxyapi-android/releases/latest/download/cliproxyapi-android-arm64.tar.gz"
-    rm -rf "$TMP_TAR" "$TMP_EXT"
-    mkdir -p "$TMP_EXT"
-    if ! curl -f -sSL "$TAR_URL" -o "$TMP_TAR"; then
+    rm -rf "\$TMP_TAR" "\$TMP_EXT"
+    mkdir -p "\$TMP_EXT"
+    if ! curl -f -sSL "\$TAR_URL" -o "\$TMP_TAR"; then
       echo "❌ Download failed. Check your network or GitHub rate limits."
-      rm -rf "$TMP_TAR" "$TMP_EXT"
+      rm -rf "\$TMP_TAR" "\$TMP_EXT"
       exit 1
     fi
 
     WAS_RUNNING=0
-    if pgrep -f "$BIN" >/dev/null 2>&1; then
+    if pgrep -f "\$BIN" >/dev/null 2>&1; then
       WAS_RUNNING=1
       echo "🛑 Temporarily stopping active daemon for upgrade..."
-      pkill -f "$BIN" || true
+      stop_daemon
       sleep 1
     fi
 
-    tar -xzf "$TMP_TAR" -C "$TMP_EXT"
-    mv -f "$TMP_EXT/cli-proxy-api" "${BIN}"
-    mv -f "$TMP_EXT/management.html" "${BASE_DIR}/static/management.html"
-    chmod 755 "${BIN}"
-    chmod 644 "${BASE_DIR}/static/management.html"
-    rm -rf "$TMP_TAR" "$TMP_EXT"
+    tar -xzf "\$TMP_TAR" -C "\$TMP_EXT"
+    mv -f "\$TMP_EXT/cli-proxy-api" "\${BIN}"
+    mv -f "\$TMP_EXT/management.html" "\${BASE_DIR}/static/management.html"
+    chmod 755 "\${BIN}"
+    chmod 644 "\${BASE_DIR}/static/management.html"
+    rm -rf "\$TMP_TAR" "\$TMP_EXT"
 
-    echo "✅ CLIProxyAPI updated successfully to ${LATEST_TAG}!"
-    if [ "$WAS_RUNNING" -eq 1 ]; then
-      echo "🔄 Restarting CLIProxyAPI daemon..."
-      setsid "$BIN" -config "$CONFIG" < /dev/null > "$LOG_FILE" 2>&1 &
-      sleep 1
-      if pgrep -f "$BIN" >/dev/null 2>&1; then
-        echo "🟢 Daemon running (PID: $(pgrep -f "$BIN" | head -n 1))."
-      fi
+    echo "✅ CLIProxyAPI updated successfully to \${LATEST_TAG}!"
+    if [ "\$WAS_RUNNING" -eq 1 ]; then
+      start_daemon
     fi
     ;;
   run)
     shift
-    exec "$BIN" -config "$CONFIG" "$@"
+    exec "\$BIN" -config "\$CONFIG" "\$@"
     ;;
   *)
-    if [ "$#" -eq 0 ]; then
+    if [ "\$#" -eq 0 ]; then
       echo "CLIProxyAPI Management Commands:"
       echo "  cliproxyapi start      - Launch service in background"
       echo "  cliproxyapi stop       - Stop background service"
@@ -287,12 +282,22 @@ case "$1" in
       echo "  cliproxyapi <options>  - Pass flags directly (e.g. -h, -antigravity-login)"
       exit 0
     fi
-    exec "$BIN" -config "$CONFIG" "$@"
+    exec "\$BIN" -config "\$CONFIG" "\$@"
     ;;
 esac
 EOF
 chmod 755 "${WRAPPER_PATH}"
 printf "      %b✔ Command 'cliproxyapi' registered in PATH%b\n\n" "${C_GREEN}" "${C_RESET}"
+
+# Restart daemon if it was running before upgrade
+if [ "$WAS_RUNNING" -eq 1 ]; then
+    printf "      %b🔄 Resuming CLIProxyAPI background daemon...%b\n" "${C_CYAN}" "${C_RESET}"
+    setsid "${BIN_PATH}" -config "${CONFIG_FILE}" < /dev/null > "${LOG_DIR}/service.log" 2>&1 &
+    sleep 1
+    if pgrep -f "${BIN_PATH}" >/dev/null 2>&1; then
+        printf "      %b✔ Service daemon resumed successfully%b\n\n" "${C_GREEN}" "${C_RESET}"
+    fi
+fi
 
 # Final Summary Card
 printf "%b────────────────────────────────────────────────────%b\n" "${C_GREEN}" "${C_RESET}"

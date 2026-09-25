@@ -17,13 +17,13 @@ request-retry: 3
 routing:
   strategy: "round-robin"
 
-# Mencegah 429 palsu dari sensor Google Antigravity
+# Prevent false 429 rate limit triggers from Google Antigravity sensor
 antigravity:
   sensitive-words:
     - Nous
     - Research
 
-# Alias model agar tool calling Hermes terbaca
+# Model alias mappings for Hermes tool calling compatibility
 oauth-model-alias:
   antigravity:
     - name: "gemini-3.8-flash-high"

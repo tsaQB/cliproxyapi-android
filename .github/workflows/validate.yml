@@ -64,7 +64,13 @@ jobs:
           VERSION=v0.0.0 VERSION_CODE=0 ./packaging/magisk/build-module.sh
           (
             cd dist/magisk
-            tar -czf cliproxyapi-android-arm64.tar.gz -C ../../packaging/magisk/bin cli-proxy-api
+            stage="android-arm64-stage"
+            mkdir -p "$stage"
+            cp ../../packaging/magisk/bin/cli-proxy-api "$stage/cli-proxy-api"
+            cp ../../packaging/magisk/static/management.html "$stage/management.html"
+            cp ../../README.md ../../LICENSE ../../THIRD_PARTY_NOTICES.md "$stage/"
+            tar -C "$stage" -czf cliproxyapi-android-arm64.tar.gz cli-proxy-api management.html README.md LICENSE THIRD_PARTY_NOTICES.md
+            rm -rf "$stage"
             sha256sum cliproxyapi-magisk.zip cliproxyapi-android-arm64.tar.gz > checksums.txt
             cp ../../packaging/magisk/update.json update.json
             printf '%s\n' '{"releaseTag":"v0.0.0","source":{},"models":{},"dashboard":{},"toolchain":{}}' > provenance.json

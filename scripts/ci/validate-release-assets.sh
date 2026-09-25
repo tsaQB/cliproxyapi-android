@@ -23,6 +23,9 @@ TARBALL="$ASSET_DIR/cliproxyapi-android-arm64.tar.gz"
 [ -f "$PROVENANCE" ] || { echo "missing provenance: $PROVENANCE" >&2; exit 1; }
 [ -f "$UPDATE_METADATA" ] || { echo "missing update metadata: $UPDATE_METADATA" >&2; exit 1; }
 [ -s "$RELEASE_NOTES" ] || { echo "missing or empty release notes: $RELEASE_NOTES" >&2; exit 1; }
+if [ "$MODE" = "--android-arm64" ]; then
+  [ -f "$TARBALL" ] || { echo "missing release tarball: $TARBALL" >&2; exit 1; }
+fi
 if [ -f "$TARBALL" ]; then
   tar -tzf "$TARBALL" >/dev/null
 fi
@@ -33,10 +36,11 @@ fi
 )
 unzip -t "$ZIP" >/dev/null
 
-python3 - "$ZIP" "$PROVENANCE" "$UPDATE_METADATA" "$RELEASE_NOTES" <<'PY'
+python3 - "$ZIP" "$PROVENANCE" "$UPDATE_METADATA" "$RELEASE_NOTES" "$TARBALL" <<'PY'
 import json
 import stat
 import sys
+import tarfile
 from pathlib import Path
 from zipfile import ZipFile
 
@@ -147,6 +151,21 @@ if any(
     for marker in ("<!doctype", "<html", "data-color-mode=")
 ):
     raise SystemExit("release notes contain an HTML page instead of Markdown text")
+
+tar_path = Path(sys.argv[5])
+if tar_path.exists():
+    with tarfile.open(tar_path, "r:gz") as tar_archive:
+        tar_entries = set(tar_archive.getnames())
+        tar_required = {
+            "cli-proxy-api",
+            "management.html",
+            "README.md",
+            "LICENSE",
+            "THIRD_PARTY_NOTICES.md",
+        }
+        missing_tar = sorted(tar_required - tar_entries)
+        if missing_tar:
+            raise SystemExit("missing tarball entries: " + ", ".join(missing_tar))
 PY
 
 TMPDIR_ROOT=${RUNNER_TEMP:-${TMPDIR:-/tmp}}
@@ -156,10 +175,22 @@ unzip -p "$ZIP" bin/cli-proxy-api > "$tmp/cli-proxy-api"
 chmod 0755 "$tmp/cli-proxy-api"
 readelf -h "$tmp/cli-proxy-api" | grep -Eq 'Class:[[:space:]]+ELF64'
 
+if [ -f "$TARBALL" ]; then
+  tar -xzf "$TARBALL" -C "$tmp" cli-proxy-api
+  mv "$tmp/cli-proxy-api" "$tmp/tar-cli-proxy-api"
+  readelf -h "$tmp/tar-cli-proxy-api" | grep -Eq 'Class:[[:space:]]+ELF64'
+fi
+
 if [ "$MODE" = "--android-arm64" ]; then
   readelf -h "$tmp/cli-proxy-api" | grep -Eq 'Machine:[[:space:]]+AArch64'
   readelf -l "$tmp/cli-proxy-api" | grep -q '/system/bin/linker64'
   readelf -d "$tmp/cli-proxy-api" | grep -q 'libc.so'
+
+  if [ -f "$TARBALL" ]; then
+    readelf -h "$tmp/tar-cli-proxy-api" | grep -Eq 'Machine:[[:space:]]+AArch64'
+    readelf -l "$tmp/tar-cli-proxy-api" | grep -q '/system/bin/linker64'
+    readelf -d "$tmp/tar-cli-proxy-api" | grep -q 'libc.so'
+  fi
 fi
 
 echo "Validated release assets in $ASSET_DIR"
