@@ -1,7 +1,7 @@
 #!/bin/sh
 # ==============================================================================
 # CLIProxyAPI Termux Native Installer (Android Non-Root ARM64)
-# Distribution by tsaQB/cliproxyapi-module
+# Distribution by tsaQB/cliproxyapi-android
 # ==============================================================================
 set -eu
 
@@ -60,14 +60,14 @@ if pgrep -f "${BIN_PATH}" >/dev/null 2>&1; then
     sleep 1
 fi
 
-# 5. Unduh Bundle Rilis Native Android (dari tsaQB/cliproxyapi-module)
-printf "%b🔍 Mengambil informasi rilis terbaru dari repo tsaQB/cliproxyapi-module...%b\n" "${C_YELLOW}" "${C_RESET}"
-LATEST_TAG=$(curl -sL https://api.github.com/repos/tsaQB/cliproxyapi-module/releases/latest | jq -r '.tag_name // empty' 2>/dev/null || true)
+# 5. Unduh Bundle Rilis Native Android (dari tsaQB/cliproxyapi-android)
+printf "%b🔍 Mengambil informasi rilis terbaru dari repo tsaQB/cliproxyapi-android...%b\n" "${C_YELLOW}" "${C_RESET}"
+LATEST_TAG=$(curl -sL https://api.github.com/repos/tsaQB/cliproxyapi-android/releases/latest | jq -r '.tag_name // empty' 2>/dev/null || true)
 if [ -z "$LATEST_TAG" ]; then
     LATEST_TAG="v7.3.17"
 fi
 
-TAR_URL="https://github.com/tsaQB/cliproxyapi-module/releases/latest/download/cliproxyapi-android-arm64.tar.gz"
+TAR_URL="https://github.com/tsaQB/cliproxyapi-android/releases/latest/download/cliproxyapi-android-arm64.tar.gz"
 TMP_TAR="${PREFIX_DIR}/tmp/cpa-android-arm64.tar.gz"
 TMP_EXTRACT="${PREFIX_DIR}/tmp/cpa_extracted_termux"
 mkdir -p "$(dirname "$TMP_TAR")" "$TMP_EXTRACT"
@@ -75,7 +75,7 @@ mkdir -p "$(dirname "$TMP_TAR")" "$TMP_EXTRACT"
 printf "%b⬇ Mengunduh bundle native Android (%s)...%b\n" "${C_CYAN}" "$LATEST_TAG" "${C_RESET}"
 if ! curl -L --progress-bar "$TAR_URL" -o "$TMP_TAR"; then
     printf "%b⚠️  Gagal mengunduh tarball, mencoba fallback dari zip...%b\n" "${C_YELLOW}" "${C_RESET}"
-    ZIP_FALLBACK="https://github.com/tsaQB/cliproxyapi-module/releases/latest/download/cliproxyapi-magisk.zip"
+    ZIP_FALLBACK="https://github.com/tsaQB/cliproxyapi-android/releases/latest/download/cliproxyapi-magisk.zip"
     TMP_ZIP="${PREFIX_DIR}/tmp/cpa-magisk-fallback.zip"
     curl -L --progress-bar "$ZIP_FALLBACK" -o "$TMP_ZIP"
     unzip -o -q "$TMP_ZIP" bin/cli-proxy-api static/management.html -d "$TMP_EXTRACT"

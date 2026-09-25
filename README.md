@@ -1,7 +1,7 @@
 # CLIProxyAPI for Android
 
-[![Release](https://img.shields.io/github/v/release/tsaQB/cliproxyapi-module?style=flat-square&color=38bdf8)](https://github.com/tsaQB/cliproxyapi-module/releases/latest)
-[![License](https://img.shields.io/github/license/tsaQB/cliproxyapi-module?style=flat-square&color=f59e0b)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/tsaQB/cliproxyapi-android?style=flat-square&color=38bdf8)](https://github.com/tsaQB/cliproxyapi-android/releases/latest)
+[![License](https://img.shields.io/github/license/tsaQB/cliproxyapi-android?style=flat-square&color=f59e0b)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Android%207.0%2B%20(ARM64)-emerald?style=flat-square)](#requirements)
 
 High-Performance ARM64 Android service & native proxy for [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI).  
@@ -35,10 +35,10 @@ lookup oauth2.googleapis.com on [::1]:53: read: connection refused
 Install in Termux with the **One-Line Installer**:
 
 ```sh
-curl -sL https://raw.githubusercontent.com/tsaQB/cliproxyapi-module/main/install.sh | bash
+curl -sL https://raw.githubusercontent.com/tsaQB/cliproxyapi-android/main/install.sh | bash
 ```
 
-*(Or via alternative link: `curl -sL https://raw.githubusercontent.com/tsaQB/cliproxyapi-module/main/install-termux.sh | bash`)*
+*(Or via alternative link: `curl -sL https://raw.githubusercontent.com/tsaQB/cliproxyapi-android/main/install-termux.sh | bash`)*
 
 #### Quick Management Commands:
 ```sh
@@ -58,7 +58,7 @@ cliproxyapi run        # Run foreground in terminal
 
 ### ⚡ Option 2: Magisk / KernelSU / APatch (Root Boot Service)
 
-1. Download **`cliproxyapi-magisk.zip`** from [Latest Release](https://github.com/tsaQB/cliproxyapi-module/releases/latest).
+1. Download **`cliproxyapi-magisk.zip`** from [Latest Release](https://github.com/tsaQB/cliproxyapi-android/releases/latest).
 2. Flash the ZIP in **Magisk**, **KernelSU Next**, or **APatch**.
 3. Reboot device.
 4. Access WebUI at `http://127.0.0.1:8317/management.html` (Default Password: `admin123`).
