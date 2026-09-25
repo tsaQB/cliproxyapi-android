@@ -142,6 +142,22 @@ usage-statistics-enabled: true
 
 routing:
   strategy: "round-robin"
+
+# Mencegah 429 palsu dari sensor Google Antigravity
+antigravity:
+  sensitive-words:
+    - Nous
+    - Research
+
+# Alias model agar tool calling Hermes terbaca
+oauth-model-alias:
+  antigravity:
+    - name: "gemini-3.8-flash-high"
+      alias: "gemini-3.8-flash"
+      fork: true
+    - name: "gemini-3.8-flash-high"
+      alias: "gemini-3.8-flash-customtools"
+      fork: true
 EOF
     chmod 600 "${CONFIG_FILE}"
     printf "      %b✔ Config created (Secret: %b%s%b)%b\n\n" "${C_GREEN}" "${C_YELLOW}" "${ADMIN_KEY}" "${C_GREEN}" "${C_RESET}"
