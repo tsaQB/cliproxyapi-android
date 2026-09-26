@@ -113,7 +113,7 @@ printf "%b[5/6]%b %b⚙️  Configuring service profile...%b\n" "${C_CYAN}" "${C
 if [ -f "${CONFIG_FILE}" ]; then
     printf "      %b✔ Existing configuration preserved: ~/.cliproxyapi/config.yaml%b\n\n" "${C_GREEN}" "${C_RESET}"
     RANDOM_KEY=$(grep -E '^[[:space:]]*-[[:space:]]*"?[a-zA-Z0-9]+' "${CONFIG_FILE}" 2>/dev/null | head -n 1 | tr -d ' "-' || echo "configured")
-    ADMIN_KEY=$(grep -E '^[[:space:]]*secret-key:[[:space:]]*' "${CONFIG_FILE}" 2>/dev/null | head -n 1 | awk '{print $2}' | tr -d '"' || echo "admin123")
+    ADMIN_KEY=$(grep -E '^[[:space:]]*secret-key:[[:space:]]*' "${CONFIG_FILE}" 2>/dev/null | head -n 1 | awk '{print $2}' | tr -d ' "\047' || echo "admin123")
 else
     RANDOM_KEY=$(dd if=/dev/urandom bs=16 count=1 2>/dev/null | od -An -tx1 | tr -d ' \n')
     ADMIN_KEY="admin123"
@@ -292,6 +292,8 @@ printf "      %b✔ Command 'cliproxyapi' registered in PATH%b\n\n" "${C_GREEN}"
 # Restart daemon if it was running before upgrade
 if [ "$WAS_RUNNING" -eq 1 ]; then
     printf "      %b🔄 Resuming CLIProxyAPI background daemon...%b\n" "${C_CYAN}" "${C_RESET}"
+    export MANAGEMENT_STATIC_PATH="${STATIC_DIR}"
+    export GODEBUG=netdns=cgo
     setsid "${BIN_PATH}" -config "${CONFIG_FILE}" < /dev/null > "${LOG_DIR}/service.log" 2>&1 &
     sleep 1
     if pgrep -f "${BIN_PATH}" >/dev/null 2>&1; then
@@ -305,7 +307,7 @@ printf "  %b🎉 Installation Complete!%b\n" "${C_BOLD}" "${C_RESET}"
 printf "%b────────────────────────────────────────────────────%b\n\n" "${C_GREEN}" "${C_RESET}"
 
 printf "  %b• WebUI Dashboard%b : %bhttp://127.0.0.1:8317/management.html%b\n" "${C_BOLD}" "${C_RESET}" "${C_CYAN}" "${C_RESET}"
-printf "  %b• Default Secret%b  : %b%s%b\n" "${C_BOLD}" "${C_RESET}" "${C_YELLOW}" "${ADMIN_KEY}" "${C_RESET}"
+printf "  %b• Secret Key%b      : %b%s%b\n" "${C_BOLD}" "${C_RESET}" "${C_YELLOW}" "${ADMIN_KEY}" "${C_RESET}"
 printf "  %b• Client API Key%b  : %b%s%b\n" "${C_BOLD}" "${C_RESET}" "${C_WHITE}" "${RANDOM_KEY}" "${C_RESET}"
 printf "  %b• Configuration%b   : %b~/.cliproxyapi/config.yaml%b\n\n" "${C_BOLD}" "${C_RESET}" "${C_DIM}" "${C_RESET}"
 
