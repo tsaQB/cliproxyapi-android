@@ -35,10 +35,10 @@ lookup oauth2.googleapis.com on [::1]:53: read: connection refused
 Install in Termux with the **One-Line Installer**:
 
 ```sh
-curl -sL https://raw.githubusercontent.com/tsaQB/cliproxyapi-android/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/tsaQB/cliproxyapi-android/main/install.sh | bash
 ```
 
-*(Or via alternative link: `curl -sL https://raw.githubusercontent.com/tsaQB/cliproxyapi-android/main/install-termux.sh | bash`)*
+*(Or via alternative alias: `curl -fsSL https://raw.githubusercontent.com/tsaQB/cliproxyapi-android/main/install-termux.sh | bash`)*
 
 #### Quick Management Commands:
 ```sh
@@ -53,7 +53,7 @@ cliproxyapi run        # Run foreground in terminal
 
 #### Access WebUI Dashboard:
 * **URL:** `http://127.0.0.1:8317/management.html`
-* **Default Password:** `admin123`
+* **Secret Key (Password):** `admin123` *(Preserved automatically on upgrades)*
 
 ---
 
@@ -62,7 +62,13 @@ cliproxyapi run        # Run foreground in terminal
 1. Download **`cliproxyapi-magisk.zip`** from [Latest Release](https://github.com/tsaQB/cliproxyapi-android/releases/latest).
 2. Flash the ZIP in **Magisk**, **KernelSU Next**, or **APatch**.
 3. Reboot device.
-4. Access WebUI at `http://127.0.0.1:8317/management.html` (Default Password: `admin123`).
+4. Access WebUI at `http://127.0.0.1:8317/management.html` (Secret Key: `admin123`).
+
+---
+
+> [!TIP]
+> **Need Linux or Windows?**  
+> Check out the universal multiplatform installer at [**tsaQB/cliproxyapi-installer**](https://github.com/tsaQB/cliproxyapi-installer).
 
 ---
 
