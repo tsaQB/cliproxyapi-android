@@ -171,20 +171,21 @@ PY
 TMPDIR_ROOT=${RUNNER_TEMP:-${TMPDIR:-/tmp}}
 tmp=$(mktemp -d "$TMPDIR_ROOT/cliproxyapi-validate.XXXXXX")
 trap 'rm -rf "$tmp"' EXIT HUP INT TERM
-unzip -p "$ZIP" bin/cli-proxy-api > "$tmp/cli-proxy-api"
-chmod 0755 "$tmp/cli-proxy-api"
-readelf -h "$tmp/cli-proxy-api" | grep -Eq 'Class:[[:space:]]+ELF64'
+unzip -p "$ZIP" bin/cli-proxy-api > "$tmp/zip-cli-proxy-api"
+chmod 0755 "$tmp/zip-cli-proxy-api"
+readelf -h "$tmp/zip-cli-proxy-api" | grep -Eq 'Class:[[:space:]]+ELF64'
 
 if [ -f "$TARBALL" ]; then
   tar -xzf "$TARBALL" -C "$tmp" cli-proxy-api
   mv "$tmp/cli-proxy-api" "$tmp/tar-cli-proxy-api"
+  chmod 0755 "$tmp/tar-cli-proxy-api"
   readelf -h "$tmp/tar-cli-proxy-api" | grep -Eq 'Class:[[:space:]]+ELF64'
 fi
 
 if [ "$MODE" = "--android-arm64" ]; then
-  readelf -h "$tmp/cli-proxy-api" | grep -Eq 'Machine:[[:space:]]+AArch64'
-  readelf -l "$tmp/cli-proxy-api" | grep -q '/system/bin/linker64'
-  readelf -d "$tmp/cli-proxy-api" | grep -q 'libc.so'
+  readelf -h "$tmp/zip-cli-proxy-api" | grep -Eq 'Machine:[[:space:]]+AArch64'
+  readelf -l "$tmp/zip-cli-proxy-api" | grep -q '/system/bin/linker64'
+  readelf -d "$tmp/zip-cli-proxy-api" | grep -q 'libc.so'
 
   if [ -f "$TARBALL" ]; then
     readelf -h "$tmp/tar-cli-proxy-api" | grep -Eq 'Machine:[[:space:]]+AArch64'
