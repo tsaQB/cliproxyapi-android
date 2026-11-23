@@ -1,6 +1,6 @@
 {
-  "version": "v8.1.1",
-  "versionCode": 800100100,
-  "zipUrl": "https://github.com/tsaQB/cliproxyapi-android/releases/download/v8.1.1/cliproxyapi-magisk.zip",
-  "changelog": "https://github.com/tsaQB/cliproxyapi-android/releases/download/v8.1.1/release-notes.md"
+  "version": "v8.1.2",
+  "versionCode": 800100200,
+  "zipUrl": "https://github.com/tsaQB/cliproxyapi-android/releases/download/v8.1.2/cliproxyapi-magisk.zip",
+  "changelog": "https://github.com/tsaQB/cliproxyapi-android/releases/download/v8.1.2/release-notes.md"
 }
